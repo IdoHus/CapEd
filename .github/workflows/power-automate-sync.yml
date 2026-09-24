@@ -1,0 +1,30 @@
+name: Sync File from Power Automate
+
+on:
+  repository_dispatch:
+    types: [power_automate_update]
+
+permissions:
+  contents: write
+
+jobs:
+  create_or_update_file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Write Content to File
+        run: |
+          mkdir -p $(dirname "${{ github.event.client_payload.file_name }}")
+          cat << 'EOF' > "${{ github.event.client_payload.file_name }}"
+          ${{ github.event.client_payload.file_content }}
+          EOF
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add "${{ github.event.client_payload.file_name }}"
+          git diff-index --quiet HEAD || git commit -m "Automated update: ${{ github.event.client_payload.file_name }}"
+          git push
